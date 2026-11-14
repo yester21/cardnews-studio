@@ -2,6 +2,11 @@
 import { uid } from './util.js';
 
 const STORAGE_KEY = 'cardnews-studio-v2';
+const FONT_KEYS = ['gmarket', 'pretendard', 'noto', 'myeongjo', 'system'];
+
+function normFont(v) {
+  return FONT_KEYS.includes(v) ? v : 'gmarket';
+}
 
 class Store {
   constructor() {
@@ -164,6 +169,11 @@ export function normalizeProject(input) {
     sourceUrl: str(p.sourceUrl, ''),
     theme: p.theme === 'dark' ? 'dark' : 'light',
     accent: /^#[0-9a-fA-F]{6}$/.test(p.accent || '') ? p.accent : '#0071e3',
+    fonts: {
+      title: normFont(p.fonts?.title),
+      body: normFont(p.fonts?.body),
+      aux: normFont(p.fonts?.aux),
+    },
     hashtags: Array.isArray(p.hashtags) ? p.hashtags.filter((h) => typeof h === 'string') : [],
     cards: [],
   };

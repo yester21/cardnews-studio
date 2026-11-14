@@ -75,8 +75,18 @@ GitHub Pages / Netlify / Vercel / CloudBase 정적 호스팅에 `cardnews-studio
 
 ## 폰트
 
-GmarketSans(Light/Medium/Bold, SIL OFL)를 `assets/fonts/`에 번들한다 — 오프라인에서도 동일하게 렌더링된다.
-FontFace API로 로드하며 실패 시 시스템 한글 폰트로 폴백한다.
+카드 폰트는 **영역별(제목 / 본문·항목 / 보조=배지·푸터) 선택** 가능하며, 전부 SIL OFL(상업적 이용 가능)이다:
+
+| 폰트 | 굵기 | 로딩 |
+|---|---|---|
+| Gmarket Sans (기본) | Light/Medium/Bold | 부팅 시 로드 |
+| Pretendard | 45~920 변수 | 부팅 시 로드 |
+| Noto Sans KR | 100~900 변수 | 선택 시 지연 로드 |
+| 나눔명조 (세리프) | Regular/Bold | 선택 시 지연 로드 |
+| 시스템 기본 | — | 다운로드 없음 |
+
+`fonts.js`의 레지스트리(FAMILIES)가 폰트 메타데이터를 관리하고, 렌더 전 `ensureImages`가 선택된 폰트를
+지연 로드한 뒤 캔버스에 적용한다. 실패 시 시스템 한글 폰트로 폴백한다. UI 크롬은 Pretendard를 쓴다.
 
 ## 구조
 

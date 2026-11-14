@@ -3,8 +3,14 @@
 //  - 레이아웃은 코드가 고정한다. 좌표를 외부에서 넣지 않는다.
 //  - 카피는 "의미 단위 줄 배열"로 받고 자동 줄바꿈을 하지 않는다.
 //  - 넘칠 경우 블록 폰트를 축소(하한 68%)하고, 그래도 넘치면 QA 경고 대상이 된다.
-import { font } from './fonts.js';
+import { font as fontBase, stackFor, ensureFontFamilyByKey } from './fonts.js?v=a5';
 import { clamp, rgba, hostnameOf } from './util.js';
+
+// 영역별 폰트 스택 — renderCard가 프로젝트 설정(fonts.title/body/aux)에 맞춰 갱신한다.
+let CUR = { title: stackFor('gmarket'), body: stackFor('gmarket'), aux: stackFor('gmarket') };
+function font(weight, size, area = 'body') {
+  return fontBase(weight, size, CUR[area] || CUR.body);
+}
 
 export const CARD_W = 1080;
 export const CARD_H = 1350;
@@ -43,6 +49,9 @@ const imgCache = new Map(); // src -> Image
 const imgWaiting = new Set();
 
 export async function ensureImages(project) {
+  // 영역별 폰트 지연 로드 (선택 시에만 다운로드)
+  const fkeys = project.fonts ? ['title', 'body', 'aux'].map((k) => project.fonts[k]).filter(Boolean) : [];
+  await Promise.all([...new Set(fkeys)].map((k) => ensureFontFamilyByKey(k)));
   const jobs = [];
   for (const c of project.cards) {
     const src = c.media && c.media.src;
@@ -89,8 +98,8 @@ function drawCoverImage(ctx, img, x, y, w, h) {
 
 // 줄 배열 블록: 최대 폭에 맞춰 블록 전체 폰트를 축소한다.
 // returns { size, overflow, height }
-export function fitBlock(ctx, lines, weight, size, maxW) {
-  ctx.font = font(weight, size);
+export function fitBlock(ctx, lines, weight, size, maxW, area = 'body') {
+  ctx.font = font(weight, size, area);
   let widest = 0;
   for (const l of lines) widest = Math.max(widest, ctx.measureText(l).width);
   let finalSize = size;
@@ -114,16 +123,16 @@ function clipLine(ctx, text, maxW) {
   return t + '…';
 }
 
-// 줄 배열 그리기. opts: {x, y, weight, size, color, lh, maxW, align, maxLines}
+// 줄 배열 그리기. opts: {x, y, weight, size, color, lh, maxW, align, maxLines, area}
 // returns { bottom, overflow, linesDrawn }
 function drawLines(ctx, lines, opts) {
   const {
     x, y, weight, size, color, lh = 1.42, maxW = CARD_W - 2 * MX,
-    align = 'left', maxLines = 99,
+    align = 'left', maxLines = 99, area = 'body',
   } = opts;
   const shown = lines.slice(0, maxLines);
-  const fit = fitBlock(ctx, shown, weight, size, maxW);
-  ctx.font = font(weight, fit.size);
+  const fit = fitBlock(ctx, shown, weight, size, maxW, area);
+  ctx.font = font(weight, fit.size, area);
   ctx.fillStyle = color;
   ctx.textAlign = align;
   ctx.textBaseline = 'top';
@@ -155,7 +164,7 @@ function drawSpaced(ctx, text, x, y, spacing) {
 function drawBadge(ctx, text, accent, opt = {}) {
   if (!text) return { bottom: opt.y || 0, height: 0, skipped: true };
   const size = opt.size || 30;
-  ctx.font = font(500, size);
+  ctx.font = font(500, size, 'aux');
   const tw = ctx.measureText(text).width;
   const padX = opt.padX || 26;
   const h = (opt.h || 60);
@@ -189,13 +198,13 @@ function drawChrome(ctx, P, card, idx, total, T, onDark) {
   ctx.beginPath();
   ctx.arc(MX + 7, 76, 7, 0, Math.PI * 2);
   ctx.fill();
-  ctx.font = font(500, 33);
+  ctx.font = font(500, 33, 'aux');
   ctx.fillStyle = ink;
   ctx.textBaseline = 'top';
   ctx.fillText(P.handle || '@your_handle', MX + 28, 60);
 
   const tag = (P.sourceLabel || 'CARD NEWS').toUpperCase();
-  ctx.font = font(500, 25);
+  ctx.font = font(500, 25, 'aux');
   ctx.fillStyle = faint;
   drawSpaced(ctx, tag, CARD_W - MX, 66, 4);
 
@@ -210,13 +219,13 @@ function drawChrome(ctx, P, card, idx, total, T, onDark) {
 
   const note = card.footerNote || (P.sourceUrl ? `${P.sourceLabel || '출처'}: ${hostnameOf(P.sourceUrl)}` : '');
   if (note) {
-    ctx.font = font(300, 25);
+    ctx.font = font(300, 25, 'aux');
     ctx.fillStyle = sub;
     ctx.textBaseline = 'top';
     ctx.fillText(clipLine(ctx, note, CARD_W - 2 * MX - 160), MX, 1268);
   }
   const pageStr = `${idx + 1} / ${total}`;
-  ctx.font = font(500, 27);
+  ctx.font = font(500, 27, 'aux');
   ctx.fillStyle = sub;
   const pw = ctx.measureText(pageStr).width;
   ctx.fillText(pageStr, CARD_W - MX - pw, 1266);
@@ -249,7 +258,7 @@ function drawPlaceholder(ctx, accent, x, y, w, h) {
   ctx.beginPath();
   ctx.arc(cx, cy + 4, 9, 0, Math.PI * 2);
   ctx.fill();
-  ctx.font = font(500, 28);
+  ctx.font = font(500, 28, 'aux');
   ctx.textBaseline = 'top';
   const t = '이미지를 추가하세요';
   ctx.fillText(t, cx - ctx.measureText(t).width / 2, cy + 66);
@@ -302,7 +311,7 @@ function layCoverMedia(ctx, P, card, T) {
       drawBadge(ctx, card.badge, accent, { x: MX, y, size: 30, h: 60 });
       y += b.h + gaps;
     } else if (b.kind === 'title') {
-      const r = drawLines(ctx, card.title, { x: MX, y, weight: 700, size: 88, color: '#FFFFFF', lh: 1.16, maxLines: 3 });
+      const r = drawLines(ctx, card.title, { x: MX, y, weight: 700, size: 88, color: '#FFFFFF', lh: 1.16, maxLines: 3, area: 'title' });
       card._overflow = card._overflow || r.overflow;
       y += b.h + gaps;
     } else {
@@ -329,7 +338,7 @@ function layMediaTop(ctx, P, card, T) {
     y = r.bottom + 30;
   }
   if (card.title.length) {
-    const r = drawLines(ctx, card.title, { x: MX, y, weight: 700, size: 62, color: T.ink, lh: 1.22, maxLines: 3 });
+    const r = drawLines(ctx, card.title, { x: MX, y, weight: 700, size: 62, color: T.ink, lh: 1.22, maxLines: 3, area: 'title' });
     card._overflow = card._overflow || r.overflow;
     y = r.bottom + 30;
   }
@@ -360,7 +369,7 @@ function layMediaFull(ctx, P, card, T) {
     if (b.kind === 'badge') {
       drawBadge(ctx, card.badge, accent, { x: MX, y, size: 28, h: 58 });
     } else if (b.kind === 'title') {
-      const r = drawLines(ctx, card.title, { x: MX, y, weight: 700, size: 74, color: '#FFFFFF', lh: 1.18, maxLines: 3 });
+      const r = drawLines(ctx, card.title, { x: MX, y, weight: 700, size: 74, color: '#FFFFFF', lh: 1.18, maxLines: 3, area: 'title' });
       card._overflow = card._overflow || r.overflow;
     } else {
       const r = drawLines(ctx, card.body, { x: MX, y, weight: 500, size: 34, color: 'rgba(255,255,255,0.86)', lh: 1.5, maxLines: 2 });
@@ -375,7 +384,7 @@ function drawHeader(ctx, card, T) {
   let y = CONTENT_TOP;
   let overflow = false;
   if (card.title.length) {
-    const r = drawLines(ctx, card.title, { x: MX, y, weight: 700, size: 58, color: T.ink, lh: 1.24, maxLines: 2 });
+    const r = drawLines(ctx, card.title, { x: MX, y, weight: 700, size: 58, color: T.ink, lh: 1.24, maxLines: 2, area: 'title' });
     overflow = overflow || r.overflow;
     y = r.bottom + 22;
   }
@@ -415,7 +424,7 @@ function layCompare(ctx, P, card, T) {
     }
     // 라벨 알약
     const label = p.label.toUpperCase();
-    ctx.font = font(700, 24);
+    ctx.font = font(700, 24, 'aux');
     const lw = ctx.measureText(label).width + 40;
     ctx.fillStyle = p.isA ? (T.isDark ? 'rgba(245,245,247,0.16)' : 'rgba(29,29,31,0.10)') : accent;
     roundRect(ctx, p.x + 28, y0 + 28, lw, 50, 25);
@@ -453,8 +462,8 @@ function layCompare(ctx, P, card, T) {
         ctx.lineTo(p.x + 51, cy - 7);
         ctx.stroke();
       }
-      const fit = fitBlock(ctx, [it], 500, 32, innerW);
-      ctx.font = font(500, fit.size);
+      const fit = fitBlock(ctx, [it], 500, 32, innerW, 'body');
+      ctx.font = font(500, fit.size, 'body');
       if (fit.overflow) card._overflow = true;
       ctx.fillStyle = T.ink;
       ctx.textBaseline = 'top';
@@ -493,7 +502,7 @@ function layChecklist(ctx, P, card, T) {
     ctx.lineTo(MX + 59, cy + 10);
     ctx.lineTo(MX + 74, cy - 9);
     ctx.stroke();
-    ctx.font = font(500, 37);
+    ctx.font = font(500, 37, 'body');
     ctx.fillStyle = T.ink;
     ctx.textBaseline = 'top';
     ctx.fillText(clipLine(ctx, it, CARD_W - 2 * MX - 140), MX + 116, cy - 19);
@@ -522,7 +531,7 @@ function laySteps(ctx, P, card, T) {
     roundRect(ctx, MX, y + (rowH - chip) / 2, chip, chip, 16);
     ctx.fillStyle = accent;
     ctx.fill();
-    ctx.font = font(700, 32);
+    ctx.font = font(700, 32, 'aux');
     ctx.fillStyle = '#FFFFFF';
     ctx.textBaseline = 'top';
     const numStr = String(i + 1);
@@ -530,11 +539,11 @@ function laySteps(ctx, P, card, T) {
     // 텍스트
     const tx = MX + chip + 32;
     const tw = CARD_W - MX - tx;
-    ctx.font = font(700, 38);
+    ctx.font = font(700, 38, 'body');
     ctx.fillStyle = T.ink;
     ctx.fillText(clipLine(ctx, text, tw), tx, y + (rowH - chip) / 2 - (sub ? 2 : -14));
     if (sub) {
-      ctx.font = font(400, 29);
+      ctx.font = font(400, 29, 'body');
       ctx.fillStyle = T.sub;
       if (ctx.measureText(sub).width > tw) card._overflow = true;
       ctx.fillText(clipLine(ctx, sub, tw), tx, y + (rowH - chip) / 2 + 44);
@@ -586,7 +595,7 @@ function layCta(ctx, P, card, T) {
     y += 58 + 34;
   }
   if (titleN) {
-    const r = drawLines(ctx, card.title, { x: MX, y, weight: 700, size: 78, color: ink, lh: 1.18, maxLines: 3, align: 'center' });
+    const r = drawLines(ctx, card.title, { x: MX, y, weight: 700, size: 78, color: ink, lh: 1.18, maxLines: 3, align: 'center', area: 'title' });
     card._overflow = card._overflow || r.overflow;
     y += titleN * 78 * 1.18 + 34;
   }
@@ -602,7 +611,7 @@ function layCta(ctx, P, card, T) {
     y += Math.min(subs.length, 3) * 44 + 46;
   }
   if (action) {
-    ctx.font = font(700, 40);
+    ctx.font = font(700, 40, 'title');
     const tw = ctx.measureText(action).width;
     const w = tw + 112;
     roundRect(ctx, CARD_W / 2 - w / 2, y, w, 92, 46);
@@ -613,7 +622,7 @@ function layCta(ctx, P, card, T) {
     ctx.fillText(action, CARD_W / 2 - tw / 2, y + 26);
     y += 92 + 44;
   }
-  ctx.font = font(500, 33);
+  ctx.font = font(500, 33, 'aux');
   ctx.fillStyle = 'rgba(255,255,255,0.66)';
   ctx.textBaseline = 'top';
   const handle = P.handle || '@your_handle';
@@ -628,12 +637,12 @@ function drawChromeTopOnly(ctx, P, card, T, onDark) {
   ctx.beginPath();
   ctx.arc(MX + 7, 76, 7, 0, Math.PI * 2);
   ctx.fill();
-  ctx.font = font(500, 33);
+  ctx.font = font(500, 33, 'aux');
   ctx.fillStyle = ink;
   ctx.textBaseline = 'top';
   ctx.fillText(P.handle || '@your_handle', MX + 28, 60);
   const tag = (P.sourceLabel || 'CARD NEWS').toUpperCase();
-  ctx.font = font(500, 25);
+  ctx.font = font(500, 25, 'aux');
   ctx.fillStyle = faint;
   drawSpaced(ctx, tag, CARD_W - MX, 66, 4);
 }
@@ -648,13 +657,13 @@ function drawChromeFooterOnly(ctx, P, card, T, onDark) {
   ctx.stroke();
   const note = card.footerNote || (P.sourceUrl ? `${P.sourceLabel || '출처'}: ${hostnameOf(P.sourceUrl)}` : '');
   if (note) {
-    ctx.font = font(300, 25);
+    ctx.font = font(300, 25, 'aux');
     ctx.fillStyle = sub;
     ctx.textBaseline = 'top';
     ctx.fillText(clipLine(ctx, note, CARD_W - 2 * MX - 160), MX, 1268);
   }
   const pageStr = `${card._index + 1} / ${card._total}`;
-  ctx.font = font(500, 27);
+  ctx.font = font(500, 27, 'aux');
   ctx.fillStyle = sub;
   const pw = ctx.measureText(pageStr).width;
   ctx.fillText(pageStr, CARD_W - MX - pw, 1266);
@@ -677,6 +686,11 @@ const RENDERERS = {
  */
 export function renderCard(ctx, project, card, index) {
   const T = THEMES[project.theme === 'dark' ? 'dark' : 'light'] || THEMES.light;
+  CUR = {
+    title: stackFor(project.fonts?.title || 'gmarket'),
+    body: stackFor(project.fonts?.body || 'gmarket'),
+    aux: stackFor(project.fonts?.aux || 'gmarket'),
+  };
   card._index = index;
   card._total = project.cards.length;
   card._overflow = false;

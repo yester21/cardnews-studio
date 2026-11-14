@@ -1,8 +1,8 @@
 // app.js — 카드뉴스 스튜디오 메인 애플리케이션
-import { loadFonts } from './fonts.js';
-import { store } from './store.js?v=a2';
+import { loadFonts, FAMILIES } from './fonts.js?v=a5';
+import { store } from './store.js?v=a5';
 import { sampleProject } from './sample.js?v=a4';
-import { renderCard, ensureImages, LAYOUTS } from './layouts.js?v=a2';
+import { renderCard, ensureImages, LAYOUTS } from './layouts.js?v=a5';
 import { runQA } from './qa.js';
 import { buildCaption } from './caption.js';
 import { exportCardPNG, exportAllZip, exportProjectJSON } from './export.js';
@@ -451,6 +451,17 @@ function openSettings() {
 
     const hashtags = inputRow(P.hashtags.join(', '), '#카드뉴스, #정보디자인');
 
+    // 영역별 카드 폰트 선택 (전부 SIL OFL — 상업적 이용 가능)
+    const mkFontSel = (key) => {
+      const sel = el('select', {}, Object.entries(FAMILIES).map(([k, f]) => el('option', { value: k }, f.label)));
+      sel.value = (P.fonts && P.fonts[key]) || 'gmarket';
+      sel.addEventListener('change', apply);
+      return sel;
+    };
+    const fTitle = mkFontSel('title');
+    const fBody = mkFontSel('body');
+    const fAux = mkFontSel('aux');
+
     function apply() {
       store.update((p) => {
         p.handle = handle.input.value;
@@ -458,6 +469,7 @@ function openSettings() {
         p.sourceUrl = sourceUrl.input.value;
         p.theme = themeSel.value;
         p.accent = colorInput.value;
+        p.fonts = { title: fTitle.value, body: fBody.value, aux: fAux.value };
         p.hashtags = hashtags.input.value.split(',').map((s) => s.trim()).filter(Boolean);
       });
     }
@@ -474,6 +486,11 @@ function openSettings() {
         el('div', { class: 'field' }, el('label', {}, '카드 테마'), themeSel),
         el('div', { class: 'field' }, el('label', {}, '액센트 색'), colorInput),
         el('div', { class: 'field' }, el('label', {}, '해시태그 (쉼표 구분)'), hashtags.input),
+      ),
+      el('div', { class: 'form-grid' },
+        el('div', { class: 'field' }, el('label', {}, '제목 폰트'), fTitle),
+        el('div', { class: 'field' }, el('label', {}, '본문·항목 폰트'), fBody),
+        el('div', { class: 'field' }, el('label', {}, '보조 폰트 (배지·푸터)'), fAux),
       ),
       el('div', { class: 'field' }, el('label', {}, '색상 프리셋'), swatches),
       el('div', { class: 'modal-actions' },

@@ -1,5 +1,5 @@
 // export.js — PNG / ZIP 내보내기, 프로젝트 JSON 저장
-import { CARD_W, CARD_H, renderCard, ensureImages, LAYOUTS } from './layouts.js?v=a2';
+import { CARD_W, CARD_H, renderCard, ensureImages, LAYOUTS } from './layouts.js?v=a5';
 import { makeZip } from './zip.js';
 import { buildCaption } from './caption.js';
 import { download, slugify } from './util.js';
