@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>카드뉴스 스튜디오 — Instagram·Threads 카드뉴스 제작기</title>
+  <meta name="description" content="고정 레이아웃으로 인스타그램·스레드용 4:5 카드뉴스(1080x1350)를 만들고 PNG로 내려받는 웹 서비스">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230071e3'/%3E%3Crect x='8' y='7' width='16' height='12' rx='2' fill='none' stroke='white' stroke-width='2'/%3E%3Cpath d='M11 26h10' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+  <div id="app">
+    <header id="app-header">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <div class="brand-text">
+          <strong>카드뉴스 스튜디오</strong>
+          <small>Instagram · Threads 4:5 카드뉴스</small>
+        </div>
+      </div>
+      <input id="project-title" class="project-title" spellcheck="false" title="프로젝트 이름" aria-label="프로젝트 이름">
+      <div class="header-actions">
+        <button id="btn-settings" class="btn btn-text" title="브랜드·테마·출처 설정">설정</button>
+        <button id="btn-caption" class="btn btn-text" title="게시용 캡션 자동 생성">캡션</button>
+        <button id="btn-ai" class="btn btn-text" title="AI 프롬프트로 초안 만들기">AI 초안</button>
+        <span class="v-divider"></span>
+        <button id="btn-json-save" class="btn btn-text" title="프로젝트 JSON 내려받기">JSON 저장</button>
+        <button id="btn-json-load" class="btn btn-text" title="프로젝트 JSON 불러오기">불러오기</button>
+        <span class="v-divider"></span>
+        <button id="btn-png" class="btn" title="선택한 카드만 PNG로 저장">이 카드 PNG</button>
+        <button id="btn-zip" class="btn btn-primary" title="전체 카드 PNG + 캡션 + 프로젝트 JSON을 ZIP으로">전체 ZIP 다운로드</button>
+      </div>
+    </header>
+    <div id="app-main">
+      <aside id="card-rail" aria-label="카드 목록"></aside>
+      <main id="preview-pane">
+        <div id="preview-wrap">
+          <canvas id="preview-canvas" width="1080" height="1350"></canvas>
+        </div>
+        <div id="preview-nav">
+          <button id="nav-prev" class="btn btn-icon" title="이전 카드 (←)">‹</button>
+          <div id="nav-dots"></div>
+          <button id="nav-next" class="btn btn-icon" title="다음 카드 (→)">›</button>
+        </div>
+        <div id="qa-strip" aria-live="polite"></div>
+      </main>
+      <aside id="editor-pane" aria-label="카드 편집"></aside>
+    </div>
+  </div>
+  <div id="toast-area"></div>
+  <div id="modal-root"></div>
+  <input type="file" id="file-json" accept="application/json,.json" hidden>
+  <script type="module" src="js/app.js?v=a2"></script>
+</body>
+</html>
