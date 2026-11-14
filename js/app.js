@@ -1,7 +1,7 @@
 // app.js — 카드뉴스 스튜디오 메인 애플리케이션
 import { loadFonts } from './fonts.js';
 import { store } from './store.js?v=a2';
-import { sampleProject } from './sample.js?v=a2';
+import { sampleProject } from './sample.js?v=a4';
 import { renderCard, ensureImages, LAYOUTS } from './layouts.js?v=a2';
 import { runQA } from './qa.js';
 import { buildCaption } from './caption.js';
