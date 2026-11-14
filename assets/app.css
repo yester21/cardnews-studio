@@ -6,6 +6,15 @@
    - 타이포: SF Pro 시스템 스택, 크기 역할 준수 (17/14/12 본문계, 600 디스플레이계)
    참고 문서에 없는 값(경고/성공 색, 모달 그림자 등)은 최소한의 로컬 확장임. */
 
+/* Pretendard — 자체호스팅 변수 폰트 (SIL OFL 1.1), 모든 굵기 45~920을 한 파일로 */
+@font-face {
+  font-family: "Pretendard";
+  src: url("fonts/PretendardVariable.woff2") format("woff2");
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* 지면·텍스트 */
   --ui-bg: #f5f5f7;               /* Fog Canvas */
@@ -43,7 +52,7 @@
   --rail-w: 208px;
   --editor-w: 408px;
 
-  --ui-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+  --ui-font: "Pretendard", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
     "Helvetica Neue", "Segoe UI", Roboto, Arial, "Malgun Gothic", "맑은 고딕", sans-serif;
 }
 
@@ -56,6 +65,7 @@ html, body {
   color: var(--ui-text);
   font-family: var(--ui-font);
   font-size: 14px;
+  letter-spacing: -0.02em; /* 프리텐다드 자간 보정 */
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
